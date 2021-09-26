@@ -7,14 +7,7 @@ from keras import losses as Loss
 import keras.backend as K
 # batch_sizexheightxwidthxdepthxchan
 
-def diceLoss():
-    
-    def Loss(y_true, y_pred):
-        top = 2*tf.reduce_sum(y_true * y_pred, [1, 2, 3])
-        bottom = tf.maximum(tf.reduce_sum(y_true+y_pred, [1, 2, 3]), 1e-5)
-        dice = tf.reduce_mean(top/bottom)
-        return -dice
-    return Loss
+
 
 def gradientLoss(penalty='l1'):
     def loss(y_true, y_pred):
@@ -119,12 +112,7 @@ def ssim_loss(y_true, y_pred):
     
     return -1* tf.reduce_sum(tf.image.ssim(y_true[0:,:,:,:,0], y_pred[0,:,:,:,0], 1.0))
 
-def wasserstein_loss(y_true, y_pred ):
-    return Average()([y_true,y_pred])
-    #return Average()(y_true, y_pred)
-
-#def wasserstein_loss(self, y_true, y_pred):
-#        return K.mean(y_true * y_pred) 
+ 
 def contrastive_loss(y_true, y_pred):
     '''
     Arguments:
@@ -142,33 +130,3 @@ def contrastive_loss(y_true, y_pred):
 def tf_loss(y_true, y_pred):
     return tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y_true, logits=y_pred)
  
-def Get_Ja(displacement):
-    '''
-    Calculate the Jacobian value at each point of the displacement map having
-
-    size of b*h*w*d*3 and in the cubic volumn of [-1, 1]^3
-
-    '''
-
-    D_y = (displacement[:, 1:, :-1, :-1, :] - displacement[:, :-1, :-1, :-1, :])
-
-    D_x = (displacement[:, :-1, 1:, :-1, :] - displacement[:, :-1, :-1, :-1, :])
-
-    D_z = (displacement[:, :-1, :-1, 1:, :] - displacement[:, :-1, :-1, :-1, :])
-
-    D1 = (D_x[..., 0] + 1) * ((D_y[..., 1] + 1) * (D_z[..., 2] + 1) - D_z[..., 1] * D_y[..., 2])
-
-    D2 = (D_x[..., 1]) * (D_y[..., 0] * (D_z[..., 2] + 1) - D_y[..., 2] * D_x[..., 0])
-
-    D3 = (D_x[..., 2]) * (D_y[..., 0] * D_z[..., 1] - (D_y[..., 1] + 1) * D_z[..., 0])
-
-    return D1 - D2 + D3
-def NJ_loss(y_true, ypred):
-    '''
-    Penalizing locations where Jacobian has negative determinants
-    '''
-    Neg_Jac = 0.5 * (tf.abs(Get_Ja(ypred)) - Get_Ja(ypred))
-    return tf.reduce_sum(Neg_Jac)
-
-def reg_loss(y_true, y_pred,w = 1e-3):
-    return gradientLoss('l2')(y_true, y_pred) + w*NJ_loss(y_true, y_pred)
